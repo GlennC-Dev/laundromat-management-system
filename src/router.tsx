@@ -1,7 +1,9 @@
 import type { RouteObject } from "react-router";
 
+import { RequireAuth } from "@/components/require-auth";
 import { ErrorPage } from "@/pages/error-page";
 import { HomePage } from "@/pages/home";
+import { LoginPage } from "@/pages/login";
 import { NotFoundPage } from "@/pages/not-found";
 
 // Route table, kept separate from main.tsx so tests can build a memory router from it.
@@ -11,7 +13,8 @@ export const routes: RouteObject[] = [
     path: "/",
     errorElement: <ErrorPage />,
     children: [
-      { index: true, element: <HomePage /> },
+      { path: "login", element: <LoginPage /> },
+      { element: <RequireAuth />, children: [{ index: true, element: <HomePage /> }] },
       { path: "*", element: <NotFoundPage /> },
     ],
   },
