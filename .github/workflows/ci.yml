@@ -37,4 +37,4 @@ jobs:
         with:
           version: 3.1.0
       - run: supabase link --project-ref nxuzqwvbnoemxfetgkee
-      - run: supabase db push
+      - run: supabase db push --remote
