@@ -6,9 +6,9 @@ select plan(34);
 insert into auth.users (id) values
   ('00000000-0000-0000-0000-0000000000a1'),
   ('00000000-0000-0000-0000-0000000000a2');
-insert into public.profiles (id, display_name, role) values
-  ('00000000-0000-0000-0000-0000000000a1', 'Admin', 'admin'),
-  ('00000000-0000-0000-0000-0000000000a2', 'Attendant', 'staff');
+-- the signup trigger has already created both profiles as staff
+update public.profiles set display_name = 'Admin', role = 'admin' where id = '00000000-0000-0000-0000-0000000000a1';
+update public.profiles set display_name = 'Attendant' where id = '00000000-0000-0000-0000-0000000000a2';
 insert into public.machines (id, label, type, capacity_kg, motor_kw, element_kw, water_l_per_cycle) values
   ('10000000-0000-0000-0000-000000000001', 'W1', 'wash', 8, 0.56, null, 44),
   ('10000000-0000-0000-0000-000000000002', 'D1', 'dry', 12, 0.37, 7.8, null);
