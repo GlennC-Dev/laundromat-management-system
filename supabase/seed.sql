@@ -1,0 +1,1 @@
+-- Demo shop seed lands in build stage 6.

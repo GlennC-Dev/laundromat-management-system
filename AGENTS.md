@@ -28,3 +28,10 @@ use the editor.
   own key and store it in Secrets.
 - **Secrets.** Lovable manages them. Do not put secret values in the repo.
 <!-- LOVABLE:END -->
+
+## Project rules (owned by the repo, outside the Lovable block)
+
+- The repo owns the database. Schema lives only in `supabase/migrations/` as plain SQL, applied in CI to a clean database. Do not generate, alter or auto-apply schema from the Lovable editor, and do not edit a migration that has already been pushed; add a new one.
+- Business rules live in Postgres (constraints, triggers, RLS, functions). The app calls them; it does not re-implement them.
+- Stack is plain React + Vite with React Router (no TanStack Start). Source of truth for scope and build order: `docs/design.md`.
+- Add pgTAP tests under `supabase/tests/database/` with every migration.
