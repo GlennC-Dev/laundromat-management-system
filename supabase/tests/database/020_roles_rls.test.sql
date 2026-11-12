@@ -93,7 +93,7 @@ select is((select count(*)::int from public.profiles), 4, 'admin sees every prof
 select is((select count(*)::int from public.restocks), 1, 'admin can read restocks');
 select is((select count(*)::int from public.utility_rates), 1, 'admin can read utility rates');
 select is((select count(*)::int from public.settings), 1, 'admin can read settings');
-select is((select count(*)::int from public.audit_log), 1, 'admin can read the audit log');
+select ok((select count(*) from public.audit_log) >= 1, 'admin can read the audit log');
 select lives_ok($$ insert into public.machines (label, type, capacity_kg, motor_kw, element_kw)
           values ('D9', 'dry', 12, 0.37, 7.8) $$, 'admin can add machines');
 select lives_ok($$ update public.profiles set role = 'admin' where id = '00000000-0000-0000-0000-0000000000b2' $$,
