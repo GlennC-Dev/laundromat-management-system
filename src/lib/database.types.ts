@@ -275,6 +275,45 @@ export type Database = {
     Views: { [_ in never]: never };
     Functions: {
       app_role: { Args: never; Returns: E["user_role"] };
+      create_ticket: {
+        Args: {
+          p_machine_id: string;
+          p_level: E["service_level"];
+          p_detergent_qty?: number;
+          p_fabcon_qty?: number;
+        };
+        Returns: string;
+      };
+      add_to_ticket: {
+        Args: {
+          p_ticket_id: string;
+          p_extra_dry_minutes?: number;
+          p_extra_spins?: number;
+          p_detergent_qty?: number;
+          p_fabcon_qty?: number;
+        };
+        Returns: undefined;
+      };
+      complete_ticket: {
+        Args: {
+          p_ticket_id: string;
+          p_amount_paid: number;
+          p_payment_method: E["payment_method"];
+          p_reference_no?: string;
+        };
+        Returns: undefined;
+      };
+      counter_sale: {
+        Args: {
+          p_detergent_qty: number;
+          p_fabcon_qty: number;
+          p_amount_paid: number;
+          p_payment_method: E["payment_method"];
+          p_reference_no?: string;
+        };
+        Returns: string;
+      };
+      void_ticket: { Args: { p_ticket_id: string; p_reason: string }; Returns: undefined };
       restock: {
         Args: { p_doses: number; p_item: E["stock_item"]; p_unit_cost: number };
         Returns: string;
