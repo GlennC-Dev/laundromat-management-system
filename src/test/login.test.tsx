@@ -1,3 +1,4 @@
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { RouterProvider, createMemoryRouter } from "react-router";
@@ -8,16 +9,19 @@ import { routes } from "@/router";
 import { authMock, fakeSession } from "./supabase-mock";
 
 vi.mock("@/lib/supabase", async () => {
-  const { authMock: auth } = await import("./supabase-mock");
-  return { supabase: { auth } };
+  const { supabaseMock } = await import("./supabase-mock");
+  return { supabase: supabaseMock };
 });
 
 function renderLogin() {
   const router = createMemoryRouter(routes, { initialEntries: ["/login"] });
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
-    <AuthProvider>
-      <RouterProvider router={router} />
-    </AuthProvider>,
+    <QueryClientProvider client={client}>
+      <AuthProvider>
+        <RouterProvider router={router} />
+      </AuthProvider>
+    </QueryClientProvider>,
   );
 }
 

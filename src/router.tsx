@@ -1,5 +1,6 @@
 import type { RouteObject } from "react-router";
 
+import { AppShell } from "@/components/app-shell";
 import { RequireAuth } from "@/components/require-auth";
 import { ErrorPage } from "@/pages/error-page";
 import { HomePage } from "@/pages/home";
@@ -14,7 +15,10 @@ export const routes: RouteObject[] = [
     errorElement: <ErrorPage />,
     children: [
       { path: "login", element: <LoginPage /> },
-      { element: <RequireAuth />, children: [{ index: true, element: <HomePage /> }] },
+      {
+        element: <RequireAuth />,
+        children: [{ element: <AppShell />, children: [{ index: true, element: <HomePage /> }] }],
+      },
       { path: "*", element: <NotFoundPage /> },
     ],
   },
