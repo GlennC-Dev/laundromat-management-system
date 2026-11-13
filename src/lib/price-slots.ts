@@ -115,7 +115,7 @@ export function buildSlots(machines: MachineLite[]): Slot[] {
 /** Price in effect on `today`, and the next scheduled change if any. Dates are YYYY-MM-DD. */
 export function priceFor(
   rows: PriceRow[],
-  slot: Slot,
+  slot: Pick<Slot, "kind" | "code" | "machine_type" | "size_kg" | "level">,
   today: string,
 ): { current: PriceRow | null; upcoming: PriceRow | null } {
   const key = slotKey(slot);

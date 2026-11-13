@@ -15,17 +15,22 @@ export const dbMock = { tables: {} as Record<string, unknown[]> };
 function builder(table: string) {
   const rows = () => dbMock.tables[table] ?? [];
   const b: Record<string, unknown> = {};
-  for (const m of ["select", "eq", "order", "limit", "insert", "update", "delete"]) b[m] = () => b;
+  for (const m of ["select", "eq", "is", "order", "limit", "insert", "update", "delete"])
+    b[m] = () => b;
   b["maybeSingle"] = async () => ({ data: rows()[0] ?? null, error: null });
   b["single"] = b["maybeSingle"];
   b["then"] = (resolve: (v: unknown) => unknown) => resolve({ data: rows(), error: null });
   return b;
 }
 
+const channelMock = { on: () => channelMock, subscribe: () => channelMock };
+
 export const supabaseMock = {
   auth: authMock,
   from: (table: string) => builder(table),
-  rpc: vi.fn(),
+  rpc: vi.fn(async () => ({ data: [], error: null })),
+  channel: () => channelMock,
+  removeChannel: vi.fn(),
 };
 
 export function fakeSession(email: string): Session {
