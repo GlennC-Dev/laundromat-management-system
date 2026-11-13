@@ -3,6 +3,7 @@ import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { RouterProvider, createBrowserRouter } from "react-router";
 
+import { Toaster } from "./components/ui/sonner";
 import { AuthProvider } from "./lib/auth";
 import { supabaseConfigured } from "./lib/supabase";
 import { routes } from "./router";
@@ -26,6 +27,7 @@ if (!supabaseConfigured) {
       <QueryClientProvider client={queryClient}>
         <AuthProvider>
           <RouterProvider router={router} />
+          <Toaster />
         </AuthProvider>
       </QueryClientProvider>
     </StrictMode>,
