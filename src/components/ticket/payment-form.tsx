@@ -86,7 +86,7 @@ export function PaymentForm({
           inputMode="decimal"
         />
         {amount !== undefined && Math.abs(amount - total) > 0.005 && (
-          <p className="text-sm text-amber-600 dark:text-amber-400">
+          <p className="text-sm text-signal">
             This differs from the total. It will be flagged in the daily report.
           </p>
         )}

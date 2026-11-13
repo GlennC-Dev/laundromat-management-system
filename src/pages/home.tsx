@@ -55,7 +55,7 @@ function Tile({
       className={cn(
         "flex flex-col gap-3 rounded-xl border bg-background p-4",
         out && "opacity-60",
-        state?.kind === "done" && "border-amber-500/60 bg-amber-50 dark:bg-amber-950/30",
+        state?.kind === "done" && "border-signal/60 bg-highlight text-highlight-foreground",
       )}
     >
       <div className="flex items-start justify-between gap-2">
@@ -70,7 +70,7 @@ function Tile({
         ) : state?.kind === "running" ? (
           <Badge>Running</Badge>
         ) : (
-          <Badge className="bg-amber-500 text-white hover:bg-amber-500">Done</Badge>
+          <Badge className="bg-signal text-signal-foreground hover:bg-signal">Done</Badge>
         )}
       </div>
 
@@ -91,7 +91,7 @@ function Tile({
             <div
               className={cn(
                 "h-full rounded-full",
-                state.kind === "running" ? "bg-primary" : "bg-amber-500",
+                state.kind === "running" ? "bg-primary" : "bg-signal",
               )}
               style={{ width: `${progress}%` }}
             />
@@ -106,7 +106,7 @@ function Tile({
         <button
           type="button"
           onClick={() => onOpen(earlier[earlier.length - 1]!)}
-          className="text-left text-sm text-amber-700 underline dark:text-amber-400"
+          className="text-left text-sm text-signal underline dark:text-signal"
         >
           {earlier.length} earlier ticket{earlier.length > 1 ? "s" : ""} awaiting payment
         </button>
