@@ -93,7 +93,7 @@ function Body({ machine, onClose }: { machine: Machine; onClose: () => void }) {
               className={cn(
                 "rounded-xl border p-3 text-left transition-colors disabled:cursor-not-allowed disabled:opacity-50",
                 level === l
-                  ? "border-primary bg-primary text-primary-foreground"
+                  ? "border-primary bg-primary text-primary-foreground hover:bg-primary/90"
                   : "bg-background hover:bg-muted",
               )}
             >
