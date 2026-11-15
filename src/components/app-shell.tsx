@@ -53,7 +53,11 @@ export function AppShell() {
     );
   }
 
-  const links = [{ to: "/", label: "Floor" }, ...(me.role === "admin" ? adminLinks : [])];
+  const links = [
+    { to: "/", label: "Floor" },
+    { to: "/tickets", label: "Today" },
+    ...(me.role === "admin" ? adminLinks : []),
+  ];
 
   return (
     <div className="min-h-screen bg-muted/30">

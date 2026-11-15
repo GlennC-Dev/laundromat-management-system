@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link, useOutletContext } from "react-router";
 import { ShoppingBag } from "lucide-react";
 
+import { StockAlert } from "@/components/stock-alert";
 import { CounterSaleDialog } from "@/components/ticket/counter-sale-dialog";
 import { NewTicketDialog } from "@/components/ticket/new-ticket-dialog";
 import { TicketSheet } from "@/components/ticket/ticket-sheet";
@@ -190,6 +191,8 @@ export function HomePage() {
           <ShoppingBag aria-hidden /> Counter sale
         </Button>
       </div>
+
+      <StockAlert />
 
       {(machines.isLoading || open.isLoading) && (
         <p className="text-sm text-muted-foreground">Loading…</p>

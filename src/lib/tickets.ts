@@ -41,6 +41,22 @@ export function useStockLevels() {
   });
 }
 
+/** Below this many doses the floor board warns that an item needs restocking. */
+export const LOW_STOCK = 20;
+
+/** Today's tickets (shop timezone), voided included. Staff cannot read completed tickets directly. */
+export function useTodaysTickets() {
+  return useQuery({
+    queryKey: ["todays_tickets"],
+    refetchInterval: 30_000,
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("todays_tickets");
+      if (error) throw error;
+      return data;
+    },
+  });
+}
+
 /**
  * Open (pending, unvoided) tickets, kept fresh by realtime plus a slow poll. Realtime alone is not
  * enough: staff lose read access to a ticket the moment it completes, so that update never reaches them.

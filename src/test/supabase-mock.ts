@@ -29,6 +29,7 @@ export const supabaseMock = {
   auth: authMock,
   from: (table: string) => builder(table),
   rpc: vi.fn(async () => ({ data: [], error: null })),
+  functions: { invoke: vi.fn(async () => ({ data: { ok: true }, error: null })) },
   channel: () => channelMock,
   removeChannel: vi.fn(),
 };

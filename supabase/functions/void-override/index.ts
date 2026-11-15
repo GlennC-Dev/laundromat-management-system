@@ -1,0 +1,66 @@
+// Void with admin override, like a POS manager override. A staff member is signed in on the till;
+// an admin types their own email and password to authorise one void. The admin's credentials are
+// used on a throwaway client (nothing persisted), so the staff session is untouched and the void is
+// recorded under the admin who approved it, with the requesting staff member in the reason.
+import { createClient } from "npm:@supabase/supabase-js@2";
+
+const cors = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+};
+
+const json = (body: unknown, status = 200) =>
+  new Response(JSON.stringify(body), { status, headers: { ...cors, "Content-Type": "application/json" } });
+
+Deno.serve(async (req) => {
+  if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
+  if (req.method !== "POST") return json({ error: "Method not allowed" }, 405);
+
+  const url = Deno.env.get("SUPABASE_URL")!;
+  const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
+
+  // The requester must be a signed-in, active user.
+  const caller = createClient(url, anonKey, {
+    global: { headers: { Authorization: req.headers.get("Authorization") ?? "" } },
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
+  const { data: callerRole } = await caller.rpc("app_role");
+  if (!callerRole) return json({ error: "Sign in first" }, 401);
+  const { data: callerUser } = await caller.auth.getUser();
+  const { data: callerProfile } = await caller
+    .from("profiles")
+    .select("display_name")
+    .eq("id", callerUser.user?.id ?? "")
+    .maybeSingle();
+
+  let body: Record<string, unknown>;
+  try {
+    body = await req.json();
+  } catch {
+    return json({ error: "Invalid request" }, 400);
+  }
+  const ticketId = String(body.ticket_id ?? "");
+  const email = String(body.admin_email ?? "").trim().toLowerCase();
+  const password = String(body.admin_password ?? "");
+  const reason = String(body.reason ?? "").trim();
+  if (!ticketId) return json({ error: "Missing ticket" }, 400);
+  if (!email || !password) return json({ error: "Enter the admin email and password" }, 400);
+  if (!reason) return json({ error: "A void needs a reason" }, 400);
+
+  const adminClient = createClient(url, anonKey, { auth: { persistSession: false, autoRefreshToken: false } });
+  const { error: signInError } = await adminClient.auth.signInWithPassword({ email, password });
+  // One message for every credential problem so this cannot be used to probe which emails exist.
+  if (signInError) return json({ error: "Admin email or password is incorrect" }, 403);
+
+  const { data: adminRole } = await adminClient.rpc("app_role");
+  if (adminRole !== "admin") return json({ error: "That account is not an admin" }, 403);
+
+  const requester = callerProfile?.display_name ?? "staff";
+  const { error: voidError } = await adminClient.rpc("void_ticket", {
+    p_ticket_id: ticketId,
+    p_reason: `${reason} (override requested by ${requester})`,
+  });
+  await adminClient.auth.signOut({ scope: "local" });
+  if (voidError) return json({ error: voidError.message }, 400);
+  return json({ ok: true });
+});

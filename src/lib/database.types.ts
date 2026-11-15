@@ -318,6 +318,7 @@ export type Database = {
         Args: { p_doses: number; p_item: E["stock_item"]; p_unit_cost: number };
         Returns: string;
       };
+      todays_tickets: { Args: never; Returns: Database["public"]["Tables"]["tickets"]["Row"][] };
       stock_levels: {
         Args: never;
         Returns: { doses: number; item: E["stock_item"] }[];

@@ -12,6 +12,7 @@ import { ErrorPage } from "@/pages/error-page";
 import { HomePage } from "@/pages/home";
 import { LoginPage } from "@/pages/login";
 import { NotFoundPage } from "@/pages/not-found";
+import { TicketsPage } from "@/pages/tickets";
 
 // Route table, kept separate from main.tsx so tests can build a memory router from it.
 // Role-based routing for staff and admin arrives with the app shell stage.
@@ -28,6 +29,7 @@ export const routes: RouteObject[] = [
             element: <AppShell />,
             children: [
               { index: true, element: <HomePage /> },
+              { path: "tickets", element: <TicketsPage /> },
               {
                 element: <RequireRole role="admin" />,
                 children: [
