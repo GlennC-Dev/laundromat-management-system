@@ -67,7 +67,7 @@ export function VoidDialog({
     },
     onSuccess: async () => {
       await Promise.all(
-        ["todays_tickets", "open_tickets", "stock_levels"].map((k) =>
+        ["todays_tickets", "open_tickets", "stock_levels", "ticket_history"].map((k) =>
           qc.invalidateQueries({ queryKey: [k] }),
         ),
       );

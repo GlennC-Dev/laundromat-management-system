@@ -15,11 +15,25 @@ export const dbMock = { tables: {} as Record<string, unknown[]> };
 function builder(table: string) {
   const rows = () => dbMock.tables[table] ?? [];
   const b: Record<string, unknown> = {};
-  for (const m of ["select", "eq", "is", "order", "limit", "insert", "update", "delete"])
+  for (const m of [
+    "select",
+    "eq",
+    "is",
+    "not",
+    "gte",
+    "lt",
+    "range",
+    "order",
+    "limit",
+    "insert",
+    "update",
+    "delete",
+  ])
     b[m] = () => b;
   b["maybeSingle"] = async () => ({ data: rows()[0] ?? null, error: null });
   b["single"] = b["maybeSingle"];
-  b["then"] = (resolve: (v: unknown) => unknown) => resolve({ data: rows(), error: null });
+  b["then"] = (resolve: (v: unknown) => unknown) =>
+    resolve({ data: rows(), error: null, count: rows().length });
   return b;
 }
 

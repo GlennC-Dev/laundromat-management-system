@@ -3,6 +3,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 
 import { PaymentForm, type Payment } from "@/components/ticket/payment-form";
+import { TicketLines } from "@/components/ticket/ticket-lines";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -26,15 +27,6 @@ import {
 } from "@/lib/tickets";
 
 type AddArgs = { dry?: number; spins?: number; detergent?: number; fabcon?: number };
-
-function Line({ label, amount }: { label: string; amount: number }) {
-  return (
-    <div className="flex justify-between text-sm">
-      <span>{label}</span>
-      <span className="tabular-nums">{formatPeso(amount)}</span>
-    </div>
-  );
-}
 
 function Body({
   ticket,
@@ -186,40 +178,7 @@ function Body({
         </p>
       </div>
 
-      <section className="space-y-1.5">
-        <Line
-          label={`${machine.capacity_kg} kg ${ticket.level}`}
-          amount={ticket.service_price ?? 0}
-        />
-        {ticket.extra_dry_minutes > 0 && (
-          <Line
-            label={`Extra drying ${ticket.extra_dry_minutes} min`}
-            amount={(ticket.extra_dry_minutes / 5) * ticket.dry_ext_unit_price}
-          />
-        )}
-        {ticket.extra_spin_count > 0 && (
-          <Line
-            label={`Extra spin × ${ticket.extra_spin_count}`}
-            amount={ticket.extra_spin_count * ticket.spin_unit_price}
-          />
-        )}
-        {ticket.detergent_qty > 0 && (
-          <Line
-            label={`Detergent × ${ticket.detergent_qty}`}
-            amount={ticket.detergent_qty * ticket.detergent_unit_price}
-          />
-        )}
-        {ticket.fabcon_qty > 0 && (
-          <Line
-            label={`Fabric conditioner × ${ticket.fabcon_qty}`}
-            amount={ticket.fabcon_qty * ticket.fabcon_unit_price}
-          />
-        )}
-        <div className="flex justify-between border-t pt-2 text-lg font-semibold">
-          <span>Total</span>
-          <span className="tabular-nums">{formatPeso(total)}</span>
-        </div>
-      </section>
+      <TicketLines ticket={ticket} capacityKg={Number(machine.capacity_kg)} />
 
       {!paying && (
         <section className="space-y-2">

@@ -8,6 +8,7 @@ import { useProfile, type Profile } from "@/lib/profile";
 import { cn } from "@/lib/utils";
 
 const adminLinks = [
+  { to: "/history", label: "Tickets" },
   { to: "/machines", label: "Machines" },
   { to: "/prices", label: "Prices" },
   { to: "/inventory", label: "Inventory" },

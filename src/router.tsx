@@ -4,6 +4,7 @@ import { AppShell } from "@/components/app-shell";
 import { RequireRole } from "@/components/require-role";
 import { RequireAuth } from "@/components/require-auth";
 import { InventoryPage } from "@/pages/admin/inventory";
+import { TicketHistoryPage } from "@/pages/admin/tickets";
 import { MachinesPage } from "@/pages/admin/machines";
 import { PricesPage } from "@/pages/admin/prices";
 import { SettingsPage } from "@/pages/admin/settings";
@@ -33,6 +34,7 @@ export const routes: RouteObject[] = [
               {
                 element: <RequireRole role="admin" />,
                 children: [
+                  { path: "history", element: <TicketHistoryPage /> },
                   { path: "machines", element: <MachinesPage /> },
                   { path: "prices", element: <PricesPage /> },
                   { path: "inventory", element: <InventoryPage /> },
