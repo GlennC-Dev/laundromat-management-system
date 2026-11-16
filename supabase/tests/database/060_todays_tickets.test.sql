@@ -24,8 +24,10 @@ set local "request.jwt.claims" = '{"sub":"00000000-0000-0000-0000-0000000000e2",
 select lives_ok($$ select public.create_ticket('20000000-0000-0000-0000-000000000001', 'clean', 0, 0) $$, 'staff starts a ticket');
 select lives_ok($$ select public.create_ticket('20000000-0000-0000-0000-000000000002', 'clean', 0, 0) $$, 'staff starts a second ticket');
 reset role;
+set local session_replication_role = replica; -- the lock trigger forbids moving a start time
 update public.tickets set started_at = now() - interval '7 days'
   where machine_id = '20000000-0000-0000-0000-000000000002';
+set local session_replication_role = origin;
 do $$ begin perform set_config('t.w1', (select id::text from public.tickets where machine_id = '20000000-0000-0000-0000-000000000001'), false); end $$;
 
 set local role authenticated;
