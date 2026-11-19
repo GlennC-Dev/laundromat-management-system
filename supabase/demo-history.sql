@@ -109,15 +109,16 @@ begin
   open_h := extract(epoch from s.opening_time) / 3600;
   close_h := extract(epoch from s.closing_time) / 3600;
 
-  drop table if exists pg_temp.m_state; drop table if exists pg_temp.cu; drop table if exists pg_temp.gp;
-  create temp table m_state (id uuid, type public.machine_type, cap numeric, free_at timestamptz);
+  create temp table if not exists m_state (id uuid, type public.machine_type, cap numeric, free_at timestamptz);
+  delete from m_state;
   insert into m_state select id, type, capacity_kg, now() from public.machines where active and status = 'available';
-  create temp table cu (arr timestamptz, k text);
-  create temp table gp (
+  create temp table if not exists cu (arr timestamptz, k text);
+  create temp table if not exists gp (
     kind public.ticket_kind, machine_id uuid, level public.service_level, started_at timestamptz,
     base int, xdry int default 0, xspin int default 0, spinmin int default 5, det int default 0, fab int default 0,
     svc numeric, dryp numeric default 0, spinp numeric default 0, detp numeric default 0, fabp numeric default 0,
     comp timestamptz, ovn boolean default false);
+  delete from cu; delete from gp;
 
   for d in select g::date from generate_series(p_from, p_to, interval '1 day') g loop
     perform setseed(((d - date '2026-01-01') % 997)::float8 / 1000.0);
@@ -155,7 +156,7 @@ begin
            * case when rainy then 1.1 else 1 end;
     n := round(lam);
 
-    truncate cu; truncate gp;
+    delete from cu; delete from gp;
     update m_state set free_at = public.demo_at(d, open_h, v_tz);
 
     for i in 1..n loop
