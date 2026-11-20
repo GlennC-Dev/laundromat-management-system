@@ -2,10 +2,11 @@ import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 
+import { HALT_WINDOW_MS, HaltDialog } from "@/components/ticket/halt-dialog";
 import { PaymentForm, type Payment } from "@/components/ticket/payment-form";
 import { TicketLines } from "@/components/ticket/ticket-lines";
+import { VoidDialog } from "@/components/ticket/void-dialog";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import {
   Sheet,
   SheetContent,
@@ -33,19 +34,21 @@ function Body({
   machine,
   isAdmin,
   onClose,
+  onHalted,
 }: {
   ticket: Ticket;
   machine: Machine;
   isAdmin: boolean;
   onClose: () => void;
+  onHalted: (machineId: string) => void;
 }) {
   const qc = useQueryClient();
   const now = useNow();
   const prices = usePriceList();
   const stock = useStockLevels();
   const [paying, setPaying] = useState(false);
-  const [voiding, setVoiding] = useState(false);
-  const [reason, setReason] = useState("");
+  const [voidOpen, setVoidOpen] = useState(false);
+  const [haltOpen, setHaltOpen] = useState(false);
 
   const refresh = () =>
     Promise.all([
@@ -84,22 +87,6 @@ function Body({
     },
     onError: (e: Error) => toast.error(e.message),
   });
-  const voidIt = useMutation({
-    mutationFn: async () => {
-      const { error } = await supabase.rpc("void_ticket", {
-        p_ticket_id: ticket.id,
-        p_reason: reason,
-      });
-      if (error) throw error;
-    },
-    onSuccess: async () => {
-      await refresh();
-      toast.success("Ticket voided");
-      onClose();
-    },
-    onError: (e: Error) => toast.error(e.message),
-  });
-
   const rows = prices.data ?? [];
   const today = todayISO();
   const listPrice = (key: Parameters<typeof unitPrice>[1]) => unitPrice(rows, key, today)?.price;
@@ -143,6 +130,11 @@ function Body({
   const state = runState(ticket, now);
   const total = ticket.total ?? 0;
   const busy = add.isPending;
+  const canHalt = now - new Date(ticket.started_at).getTime() < HALT_WINDOW_MS;
+  const secondsToHalt = Math.max(
+    0,
+    Math.ceil((HALT_WINDOW_MS - (now - new Date(ticket.started_at).getTime())) / 1000),
+  );
 
   type Quick = { label: string; price: number | undefined; args: AddArgs; blocked?: boolean };
   const quick: Quick[] = [
@@ -224,40 +216,46 @@ function Body({
         </Button>
       )}
 
-      {isAdmin && !paying && (
+      {!paying && (
         <section className="space-y-2 border-t pt-4">
-          {voiding ? (
-            <>
-              <Input
-                placeholder="Reason for voiding"
-                value={reason}
-                onChange={(e) => setReason(e.target.value)}
-                className="h-11"
-              />
-              <div className="grid grid-cols-2 gap-2">
-                <Button variant="outline" onClick={() => setVoiding(false)}>
-                  Cancel
-                </Button>
-                <Button
-                  variant="destructive"
-                  disabled={reason.trim() === "" || voidIt.isPending}
-                  onClick={() => voidIt.mutate()}
-                >
-                  {voidIt.isPending ? "Voiding…" : "Void ticket"}
-                </Button>
-              </div>
-            </>
+          {canHalt ? (
+            <Button
+              variant="outline"
+              className="w-full border-destructive/50 text-destructive"
+              onClick={() => setHaltOpen(true)}
+            >
+              Halt job ({secondsToHalt}s left)
+            </Button>
           ) : (
             <Button
               variant="ghost"
               className="w-full text-destructive"
-              onClick={() => setVoiding(true)}
+              onClick={() => setVoidOpen(true)}
             >
-              Void this ticket…
+              {isAdmin ? "Void this ticket…" : "Void this ticket (admin approval)…"}
             </Button>
           )}
         </section>
       )}
+
+      <HaltDialog
+        ticketId={ticket.id}
+        machineLabel={machine.label}
+        open={haltOpen}
+        onClose={() => setHaltOpen(false)}
+        onHalted={() => {
+          setHaltOpen(false);
+          onHalted(machine.id);
+          onClose();
+        }}
+      />
+      <VoidDialog
+        ticketId={voidOpen ? ticket.id : null}
+        summary={`${machine.label} · ${formatPeso(total)}`}
+        isAdmin={isAdmin}
+        onClose={() => setVoidOpen(false)}
+        onVoided={onClose}
+      />
     </div>
   );
 }
@@ -267,11 +265,13 @@ export function TicketSheet({
   machine,
   isAdmin,
   onClose,
+  onHalted,
 }: {
   ticket: Ticket | null;
   machine: Machine | null;
   isAdmin: boolean;
   onClose: () => void;
+  onHalted: (machineId: string) => void;
 }) {
   return (
     <Sheet open={ticket !== null && machine !== null} onOpenChange={(o) => !o && onClose()}>
@@ -287,6 +287,7 @@ export function TicketSheet({
             machine={machine}
             isAdmin={isAdmin}
             onClose={onClose}
+            onHalted={onHalted}
           />
         )}
       </SheetContent>

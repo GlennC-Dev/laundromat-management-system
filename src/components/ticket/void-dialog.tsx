@@ -35,11 +35,13 @@ export function VoidDialog({
   summary,
   isAdmin,
   onClose,
+  onVoided,
 }: {
   ticketId: string | null;
   summary: string;
   isAdmin: boolean;
   onClose: () => void;
+  onVoided?: () => void;
 }) {
   const qc = useQueryClient();
   const form = useForm<Values>({
@@ -73,6 +75,7 @@ export function VoidDialog({
       );
       toast.success("Ticket voided");
       close();
+      onVoided?.();
     },
     onError: (e: Error) => {
       form.resetField("admin_password");

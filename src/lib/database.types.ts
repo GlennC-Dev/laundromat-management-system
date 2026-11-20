@@ -229,6 +229,7 @@ export type Database = {
           extra_spin_count: number;
           fabcon_qty: number;
           fabcon_unit_price: number;
+          halt_reason: E["halt_reason"] | null;
           id: string;
           kind: E["ticket_kind"];
           level: E["service_level"] | null;
@@ -313,6 +314,10 @@ export type Database = {
         };
         Returns: string;
       };
+      halt_ticket: {
+        Args: { p_ticket_id: string; p_reason: E["halt_reason"]; p_note?: string };
+        Returns: undefined;
+      };
       void_ticket: { Args: { p_ticket_id: string; p_reason: string }; Returns: undefined };
       restock: {
         Args: { p_doses: number; p_item: E["stock_item"]; p_unit_cost: number };
@@ -325,6 +330,8 @@ export type Database = {
       };
     };
     Enums: {
+      halt_reason:
+        "machine_error" | "door_problem" | "wrong_cycle" | "customer_changed_mind" | "other";
       machine_status: "available" | "out_of_service";
       machine_type: "wash" | "dry";
       payment_method: "cash" | "gcash" | "maya" | "bank_transfer" | "card";

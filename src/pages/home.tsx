@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link, useOutletContext } from "react-router";
 import { ShoppingBag } from "lucide-react";
 
+import { HALT_COOLDOWN_MS } from "@/components/ticket/halt-dialog";
 import { StockAlert } from "@/components/stock-alert";
 import { CounterSaleDialog } from "@/components/ticket/counter-sale-dialog";
 import { NewTicketDialog } from "@/components/ticket/new-ticket-dialog";
@@ -27,16 +28,19 @@ function Tile({
   now,
   onStart,
   onOpen,
+  coolingUntil,
 }: {
   machine: Machine;
   tickets: Ticket[]; // open tickets on this machine, newest first
   now: number;
+  coolingUntil?: number | undefined;
   onStart: () => void;
   onOpen: (t: Ticket) => void;
 }) {
   const current = tickets[0];
   const earlier = tickets.slice(1);
   const out = machine.status === "out_of_service";
+  const cooling = coolingUntil !== undefined && coolingUntil > now;
   const state = current ? runState(current, now) : null;
   const progress =
     current && state?.kind === "running"
@@ -66,6 +70,8 @@ function Tile({
         </div>
         {out ? (
           <Badge variant="destructive">Out of service</Badge>
+        ) : cooling ? (
+          <Badge variant="outline">Cooling {Math.ceil((coolingUntil - now) / 1000)}s</Badge>
         ) : !current ? (
           <Badge variant="secondary">Free</Badge>
         ) : state?.kind === "running" ? (
@@ -117,6 +123,7 @@ function Tile({
         <Button
           className="mt-auto h-11"
           variant={current ? "outline" : "default"}
+          disabled={cooling}
           onClick={onStart}
         >
           {current ? "Start another" : "Start"}
@@ -133,11 +140,13 @@ function Group({
   now,
   onStart,
   onOpen,
+  cooling,
 }: {
   title: string;
   machines: Machine[];
   ticketsBy: Map<string, Ticket[]>;
   now: number;
+  cooling: Record<string, number>;
   onStart: (m: Machine) => void;
   onOpen: (t: Ticket) => void;
 }) {
@@ -152,6 +161,7 @@ function Group({
             machine={m}
             tickets={ticketsBy.get(m.id) ?? []}
             now={now}
+            coolingUntil={cooling[m.id]}
             onStart={() => onStart(m)}
             onOpen={onOpen}
           />
@@ -169,6 +179,8 @@ export function HomePage() {
   const [starting, setStarting] = useState<Machine | null>(null);
   const [viewing, setViewing] = useState<Ticket | null>(null);
   const [counter, setCounter] = useState(false);
+  // Machines that were just halted can't start a job for a minute (the database enforces it too).
+  const [cooling, setCooling] = useState<Record<string, number>>({});
 
   const active = (machines.data ?? []).filter((m) => m.active);
   const ticketsBy = new Map<string, Ticket[]>();
@@ -221,6 +233,7 @@ export function HomePage() {
         machines={active.filter((m) => m.type === "wash")}
         ticketsBy={ticketsBy}
         now={now}
+        cooling={cooling}
         onStart={setStarting}
         onOpen={setViewing}
       />
@@ -229,6 +242,7 @@ export function HomePage() {
         machines={active.filter((m) => m.type === "dry")}
         ticketsBy={ticketsBy}
         now={now}
+        cooling={cooling}
         onStart={setStarting}
         onOpen={setViewing}
       />
@@ -239,6 +253,7 @@ export function HomePage() {
         machine={viewingMachine}
         isAdmin={me.role === "admin"}
         onClose={() => setViewing(null)}
+        onHalted={(id) => setCooling((c) => ({ ...c, [id]: Date.now() + HALT_COOLDOWN_MS }))}
       />
       <CounterSaleDialog open={counter} onClose={() => setCounter(false)} />
     </div>
