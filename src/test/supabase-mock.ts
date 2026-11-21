@@ -38,14 +38,49 @@ function builder(table: string) {
   return b;
 }
 
-const channelMock = { on: () => channelMock, subscribe: () => channelMock };
+type RealtimeChannelMock = {
+  topic: string;
+  subscribed: boolean;
+  on: ReturnType<typeof vi.fn>;
+  subscribe: ReturnType<typeof vi.fn>;
+};
+
+const realtimeChannels = new Map<string, RealtimeChannelMock>();
+
+function makeChannel(topic: string): RealtimeChannelMock {
+  const channel: RealtimeChannelMock = {
+    topic,
+    subscribed: false,
+    on: vi.fn(() => {
+      if (channel.subscribed) throw new Error("Cannot register listeners after subscribing");
+      return channel;
+    }),
+    subscribe: vi.fn(() => {
+      channel.subscribed = true;
+      return channel;
+    }),
+  };
+  return channel;
+}
+
+export const realtimeMock = { channels: realtimeChannels };
+
+export function resetRealtimeMock() {
+  realtimeChannels.clear();
+}
 
 export const supabaseMock = {
   auth: authMock,
   from: (table: string) => builder(table),
   rpc: vi.fn(async () => ({ data: [], error: null })),
   functions: { invoke: vi.fn(async () => ({ data: { ok: true }, error: null })) },
-  channel: () => channelMock,
+  channel: (topic: string) => {
+    const existing = realtimeChannels.get(topic);
+    if (existing) return existing;
+    const channel = makeChannel(topic);
+    realtimeChannels.set(topic, channel);
+    return channel;
+  },
   removeChannel: vi.fn(),
 };
 

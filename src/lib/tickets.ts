@@ -45,6 +45,8 @@ export function useStockLevels() {
 /** Below this many doses the floor board warns that an item needs restocking. */
 export const LOW_STOCK = 20;
 
+let openTicketsChannelSequence = 0;
+
 /** Today's tickets (shop timezone), voided included. Staff cannot read completed tickets directly. */
 export function useTodaysTickets() {
   return useQuery({
@@ -63,22 +65,6 @@ export function useTodaysTickets() {
  * enough: staff lose read access to a ticket the moment it completes, so that update never reaches them.
  */
 export function useOpenTickets() {
-  const qc = useQueryClient();
-  useEffect(() => {
-    const channel = supabase
-      .channel("open-tickets")
-      .on("postgres_changes", { event: "*", schema: "public", table: "tickets" }, () => {
-        void qc.invalidateQueries({ queryKey: ["open_tickets"] });
-      })
-      .on("postgres_changes", { event: "*", schema: "public", table: "orders" }, () => {
-        void qc.invalidateQueries({ queryKey: ["open_orders"] });
-      })
-      .subscribe();
-    return () => {
-      void supabase.removeChannel(channel);
-    };
-  }, [qc]);
-
   return useQuery({
     queryKey: ["open_tickets"],
     refetchInterval: 30_000,
@@ -93,6 +79,25 @@ export function useOpenTickets() {
       return data;
     },
   });
+}
+
+/** One floor-board subscription refreshes shared queries; a fresh topic avoids reusing a channel while it closes. */
+export function useOpenTicketRealtime() {
+  const qc = useQueryClient();
+  useEffect(() => {
+    const channel = supabase
+      .channel(`open-tickets-${++openTicketsChannelSequence}`)
+      .on("postgres_changes", { event: "*", schema: "public", table: "tickets" }, () => {
+        void qc.invalidateQueries({ queryKey: ["open_tickets"] });
+      })
+      .on("postgres_changes", { event: "*", schema: "public", table: "orders" }, () => {
+        void qc.invalidateQueries({ queryKey: ["open_orders"] });
+      })
+      .subscribe();
+    return () => {
+      void supabase.removeChannel(channel);
+    };
+  }, [qc]);
 }
 
 /** Orders still open (staff can read only these). */

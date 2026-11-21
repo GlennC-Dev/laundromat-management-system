@@ -1,4 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { StrictMode } from "react";
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { RouterProvider, createMemoryRouter } from "react-router";
@@ -8,7 +9,15 @@ import { AuthProvider } from "@/lib/auth";
 import { formatDuration, runState } from "@/lib/tickets";
 import { paymentSchema } from "@/components/ticket/payment-form";
 import { routes } from "@/router";
-import { authMock, dbMock, fakeSession, setProfile, supabaseMock } from "./supabase-mock";
+import {
+  authMock,
+  dbMock,
+  fakeSession,
+  realtimeMock,
+  resetRealtimeMock,
+  setProfile,
+  supabaseMock,
+} from "./supabase-mock";
 
 vi.mock("@/lib/supabase", async () => {
   const { supabaseMock } = await import("./supabase-mock");
@@ -53,20 +62,22 @@ function ticket(id: string, machine_id: string, level: string, endsInMin: number
   };
 }
 
-function renderBoard() {
+function renderBoard(strict = false) {
   const router = createMemoryRouter(routes, { initialEntries: ["/"] });
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-  return render(
+  const app = (
     <QueryClientProvider client={client}>
       <AuthProvider>
         <RouterProvider router={router} />
       </AuthProvider>
-    </QueryClientProvider>,
+    </QueryClientProvider>
   );
+  return render(strict ? <StrictMode>{app}</StrictMode> : app);
 }
 
 describe("Floor board", () => {
   beforeEach(() => {
+    resetRealtimeMock();
     authMock.session = fakeSession("attendant@example.com");
     setProfile("staff");
     supabaseMock.rpc.mockClear();
@@ -104,6 +115,19 @@ describe("Floor board", () => {
     expect(screen.getByText("Done")).toBeInTheDocument();
     expect(screen.getByText(/20 min left/)).toBeInTheDocument();
     expect(screen.getByText(/done 5 min ago/)).toBeInTheDocument();
+  });
+
+  it("registers realtime listeners safely when Strict Mode replays effects", async () => {
+    renderBoard(true);
+
+    expect(await screen.findByText("W1")).toBeInTheDocument();
+    const channels = [...realtimeMock.channels.values()];
+    expect(channels).toHaveLength(2);
+    expect(new Set(channels.map((channel) => channel.topic)).size).toBe(2);
+    for (const channel of channels) {
+      expect(channel.on).toHaveBeenCalledTimes(2);
+      expect(channel.subscribe).toHaveBeenCalledTimes(1);
+    }
   });
 
   it("starts a machine through create_ticket", async () => {

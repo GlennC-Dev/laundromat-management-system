@@ -35,3 +35,4 @@ use the editor.
 - Business rules live in Postgres (constraints, triggers, RLS, functions). The app calls them; it does not re-implement them.
 - Stack is plain React + Vite with React Router (no TanStack Start). Source of truth for scope and build order: `docs/design.md`.
 - Add pgTAP tests under `supabase/tests/database/` with every migration.
+- Realtime invalidation for open-ticket queries is owned once by the floor board; data hooks stay query-only to prevent duplicate handlers on shared channels.

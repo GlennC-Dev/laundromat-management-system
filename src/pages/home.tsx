@@ -16,6 +16,7 @@ import type { Profile } from "@/lib/profile";
 import {
   formatDuration,
   runState,
+  useOpenTicketRealtime,
   useMachines,
   useNow,
   useOpenOrders,
@@ -187,6 +188,7 @@ function Group({
 
 export function HomePage() {
   const me = useOutletContext<Profile>();
+  useOpenTicketRealtime();
   const machines = useMachines();
   const open = useOpenTickets();
   const orders = useOpenOrders();
