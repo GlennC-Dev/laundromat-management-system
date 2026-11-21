@@ -19,6 +19,7 @@ function builder(table: string) {
     "select",
     "eq",
     "is",
+    "in",
     "not",
     "gte",
     "lt",

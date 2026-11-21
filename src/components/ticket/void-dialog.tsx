@@ -69,9 +69,14 @@ export function VoidDialog({
     },
     onSuccess: async () => {
       await Promise.all(
-        ["todays_tickets", "open_tickets", "stock_levels", "ticket_history"].map((k) =>
-          qc.invalidateQueries({ queryKey: [k] }),
-        ),
+        [
+          "todays_tickets",
+          "todays_orders",
+          "open_tickets",
+          "open_orders",
+          "stock_levels",
+          "ticket_history",
+        ].map((k) => qc.invalidateQueries({ queryKey: [k] })),
       );
       toast.success("Ticket voided");
       close();

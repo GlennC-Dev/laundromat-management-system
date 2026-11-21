@@ -21,8 +21,8 @@ insert into public.restocks (item, doses, unit_cost, created_by) values
 -- staff rings up one ticket and completes it, then another is left open and moved to last week
 set local role authenticated;
 set local "request.jwt.claims" = '{"sub":"00000000-0000-0000-0000-0000000000e2","role":"authenticated"}';
-select lives_ok($$ select public.create_ticket('20000000-0000-0000-0000-000000000001', 'clean', 0, 0) $$, 'staff starts a ticket');
-select lives_ok($$ select public.create_ticket('20000000-0000-0000-0000-000000000002', 'clean', 0, 0) $$, 'staff starts a second ticket');
+select lives_ok($$ select public.create_ticket('20000000-0000-0000-0000-000000000001', 'clean', 0, 0, null, 'Test Customer', '09170000001') $$, 'staff starts a ticket');
+select lives_ok($$ select public.create_ticket('20000000-0000-0000-0000-000000000002', 'clean', 0, 0, null, 'Test Customer', '09170000001') $$, 'staff starts a second ticket');
 reset role;
 set local session_replication_role = replica; -- the lock trigger forbids moving a start time
 update public.tickets set started_at = now() - interval '7 days'

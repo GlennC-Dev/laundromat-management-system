@@ -79,6 +79,21 @@ export type Database = {
         };
         Relationships: [];
       };
+      orders: {
+        Row: {
+          closed_at: string | null;
+          customer_name: string;
+          id: number;
+          opened_at: string;
+          opened_by: string;
+          phone: string;
+          status: E["order_status"];
+        };
+        // Orders are written only through business functions, never directly.
+        Insert: never;
+        Update: never;
+        Relationships: [];
+      };
       price_list: {
         Row: {
           code: E["price_code"] | null;
@@ -234,6 +249,7 @@ export type Database = {
           kind: E["ticket_kind"];
           level: E["service_level"] | null;
           machine_id: string | null;
+          order_id: number | null;
           payment_method: E["payment_method"] | null;
           reference_no: string | null;
           service_price: number | null;
@@ -282,9 +298,22 @@ export type Database = {
           p_level: E["service_level"];
           p_detergent_qty?: number;
           p_fabcon_qty?: number;
+          p_order_id?: number;
+          p_customer_name?: string;
+          p_phone?: string;
         };
         Returns: string;
       };
+      pay_order: {
+        Args: {
+          p_order_id: number;
+          p_amount_paid: number;
+          p_payment_method: E["payment_method"];
+          p_reference_no?: string;
+        };
+        Returns: undefined;
+      };
+      todays_orders: { Args: never; Returns: Database["public"]["Tables"]["orders"]["Row"][] };
       add_to_ticket: {
         Args: {
           p_ticket_id: string;
@@ -334,6 +363,7 @@ export type Database = {
         "machine_error" | "door_problem" | "wrong_cycle" | "customer_changed_mind" | "other";
       machine_status: "available" | "out_of_service";
       machine_type: "wash" | "dry";
+      order_status: "open" | "closed";
       payment_method: "cash" | "gcash" | "maya" | "bank_transfer" | "card";
       price_code: "extra_spin" | "dry_extension" | "detergent" | "fabcon";
       price_kind: "service" | "add_on" | "item";

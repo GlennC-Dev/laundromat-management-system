@@ -3,8 +3,10 @@ import { Link, useOutletContext } from "react-router";
 import { ShoppingBag } from "lucide-react";
 
 import { HALT_COOLDOWN_MS } from "@/components/ticket/halt-dialog";
+import { OrdersStrip } from "@/components/orders-strip";
 import { StockAlert } from "@/components/stock-alert";
 import { CounterSaleDialog } from "@/components/ticket/counter-sale-dialog";
+import { OrderDialog } from "@/components/ticket/order-dialog";
 import { NewTicketDialog } from "@/components/ticket/new-ticket-dialog";
 import { TicketSheet } from "@/components/ticket/ticket-sheet";
 import { Badge } from "@/components/ui/badge";
@@ -16,8 +18,10 @@ import {
   runState,
   useMachines,
   useNow,
+  useOpenOrders,
   useOpenTickets,
   type Machine,
+  type Order,
   type Ticket,
 } from "@/lib/tickets";
 import { cn } from "@/lib/utils";
@@ -29,8 +33,10 @@ function Tile({
   onStart,
   onOpen,
   coolingUntil,
+  customer,
 }: {
   machine: Machine;
+  customer?: string | undefined;
   tickets: Ticket[]; // open tickets on this machine, newest first
   now: number;
   coolingUntil?: number | undefined;
@@ -88,6 +94,7 @@ function Tile({
           className="space-y-2 text-left"
           aria-label={`Open ticket on ${machine.label}`}
         >
+          {customer && <p className="truncate text-sm font-medium">{customer}</p>}
           <p className="text-sm">
             <span className="capitalize">{current.level}</span> ·{" "}
             {state.kind === "running"
@@ -133,6 +140,10 @@ function Tile({
   );
 }
 
+function customerOf(t: Ticket | undefined, customers: Map<number, string>) {
+  return t?.order_id != null ? customers.get(t.order_id) : undefined;
+}
+
 function Group({
   title,
   machines,
@@ -141,7 +152,9 @@ function Group({
   onStart,
   onOpen,
   cooling,
+  customers,
 }: {
+  customers: Map<number, string>;
   title: string;
   machines: Machine[];
   ticketsBy: Map<string, Ticket[]>;
@@ -162,6 +175,7 @@ function Group({
             tickets={ticketsBy.get(m.id) ?? []}
             now={now}
             coolingUntil={cooling[m.id]}
+            customer={customerOf(ticketsBy.get(m.id)?.[0], customers)}
             onStart={() => onStart(m)}
             onOpen={onOpen}
           />
@@ -175,10 +189,12 @@ export function HomePage() {
   const me = useOutletContext<Profile>();
   const machines = useMachines();
   const open = useOpenTickets();
+  const orders = useOpenOrders();
   const now = useNow();
   const [starting, setStarting] = useState<Machine | null>(null);
   const [viewing, setViewing] = useState<Ticket | null>(null);
   const [counter, setCounter] = useState(false);
+  const [paying, setPaying] = useState<Order | null>(null);
   // Machines that were just halted can't start a job for a minute (the database enforces it too).
   const [cooling, setCooling] = useState<Record<string, number>>({});
 
@@ -188,6 +204,7 @@ export function HomePage() {
     if (!t.machine_id) continue;
     ticketsBy.set(t.machine_id, [...(ticketsBy.get(t.machine_id) ?? []), t]);
   }
+  const customers = new Map((orders.data ?? []).map((o) => [o.id, o.customer_name]));
   const viewingMachine = viewing
     ? ((machines.data ?? []).find((m) => m.id === viewing.machine_id) ?? null)
     : null;
@@ -205,6 +222,8 @@ export function HomePage() {
       </div>
 
       <StockAlert />
+
+      <OrdersStrip orders={orders.data ?? []} tickets={open.data ?? []} onOpen={setPaying} />
 
       {(machines.isLoading || open.isLoading) && (
         <p className="text-sm text-muted-foreground">Loading…</p>
@@ -234,6 +253,7 @@ export function HomePage() {
         ticketsBy={ticketsBy}
         now={now}
         cooling={cooling}
+        customers={customers}
         onStart={setStarting}
         onOpen={setViewing}
       />
@@ -243,6 +263,7 @@ export function HomePage() {
         ticketsBy={ticketsBy}
         now={now}
         cooling={cooling}
+        customers={customers}
         onStart={setStarting}
         onOpen={setViewing}
       />
@@ -253,7 +274,17 @@ export function HomePage() {
         machine={viewingMachine}
         isAdmin={me.role === "admin"}
         onClose={() => setViewing(null)}
+        onOpenOrder={(o) => {
+          setViewing(null);
+          setPaying(o);
+        }}
         onHalted={(id) => setCooling((c) => ({ ...c, [id]: Date.now() + HALT_COOLDOWN_MS }))}
+      />
+      <OrderDialog
+        order={paying}
+        jobs={(open.data ?? []).filter((t) => paying !== null && t.order_id === paying.id)}
+        machines={machines.data ?? []}
+        onClose={() => setPaying(null)}
       />
       <CounterSaleDialog open={counter} onClose={() => setCounter(false)} />
     </div>

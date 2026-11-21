@@ -113,6 +113,9 @@ describe("Floor board", () => {
 
     const dialog = await screen.findByRole("dialog");
     await userEvent.click(within(dialog).getByRole("radio", { name: /clean.*₱80/i }));
+    expect(within(dialog).getByRole("button", { name: "Start machine" })).toBeDisabled();
+    await userEvent.type(within(dialog).getByLabelText("Name"), "Maria Santos");
+    await userEvent.type(within(dialog).getByLabelText("Mobile number"), "0917 123 4567");
     await userEvent.click(within(dialog).getByRole("button", { name: "Start machine" }));
 
     expect(supabaseMock.rpc).toHaveBeenCalledWith("create_ticket", {
@@ -120,6 +123,8 @@ describe("Floor board", () => {
       p_level: "clean",
       p_detergent_qty: 0,
       p_fabcon_qty: 0,
+      p_customer_name: "Maria Santos",
+      p_phone: "0917 123 4567",
     });
   });
 

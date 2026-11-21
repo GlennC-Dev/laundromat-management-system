@@ -31,7 +31,7 @@ insert into public.restocks (item, doses, unit_cost, created_by) values
 set local role authenticated;
 set local "request.jwt.claims" = '{"sub":"00000000-0000-0000-0000-0000000000d2","role":"authenticated"}';
 
-select lives_ok($$ select public.create_ticket('10000000-0000-0000-0000-000000000001', 'clean', 2, 0) $$,
+select lives_ok($$ select public.create_ticket('10000000-0000-0000-0000-000000000001', 'clean', 2, 0, null, 'Test Customer', '09170000001') $$,
   'staff can create a wash ticket');
 reset role;
 do $$ begin perform set_config('t.w1', (select id::text from public.tickets where machine_id = '10000000-0000-0000-0000-000000000001'), false); end $$;
@@ -50,15 +50,15 @@ select is((select count(*)::int from public.audit_log where table_name = 'ticket
 
 set local role authenticated;
 set local "request.jwt.claims" = '{"sub":"00000000-0000-0000-0000-0000000000d2","role":"authenticated"}';
-select throws_ilike($$ select public.create_ticket('10000000-0000-0000-0000-000000000001', 'clean') $$,
+select throws_ilike($$ select public.create_ticket('10000000-0000-0000-0000-000000000001', 'clean', 0, 0, null, 'Test Customer', '09170000001') $$,
   '%machine W1 is busy until%', 'a busy machine cannot take a second ticket');
-select throws_ilike($$ select public.create_ticket('10000000-0000-0000-0000-000000000003', 'clean') $$,
+select throws_ilike($$ select public.create_ticket('10000000-0000-0000-0000-000000000003', 'clean', 0, 0, null, 'Test Customer', '09170000001') $$,
   '%not available%', 'an out-of-service machine cannot take a ticket');
-select throws_ilike($$ select public.create_ticket('10000000-0000-0000-0000-000000000002', 'driest') $$,
+select throws_ilike($$ select public.create_ticket('10000000-0000-0000-0000-000000000002', 'driest', 0, 0, null, 'Test Customer', '09170000001') $$,
   '%no price set%', 'a missing price is reported');
-select throws_ilike($$ select public.create_ticket('10000000-0000-0000-0000-000000000002', 'clean') $$,
+select throws_ilike($$ select public.create_ticket('10000000-0000-0000-0000-000000000002', 'clean', 0, 0, null, 'Test Customer', '09170000001') $$,
   '%does not match%', 'a washer level on a dryer is rejected');
-select throws_ilike($$ select public.create_ticket('10000000-0000-0000-0000-000000000001', 'clean', 99, 0) $$,
+select throws_ilike($$ select public.create_ticket('10000000-0000-0000-0000-000000000001', 'clean', 99, 0, null, 'Test Customer', '09170000001') $$,
   '%out of stock%', 'a ticket cannot use more detergent than is in stock');
 
 -- adding to a ticket -------------------------------------------------------------------------
@@ -85,7 +85,7 @@ select is((select detergent_qty from public.tickets where machine_id = '10000000
 
 set local role authenticated;
 set local "request.jwt.claims" = '{"sub":"00000000-0000-0000-0000-0000000000d2","role":"authenticated"}';
-select lives_ok($$ select public.create_ticket('10000000-0000-0000-0000-000000000002', 'dry', 1, 0) $$, 'staff can create a dry ticket');
+select lives_ok($$ select public.create_ticket('10000000-0000-0000-0000-000000000002', 'dry', 1, 0, null, 'Test Customer', '09170000001') $$, 'staff can create a dry ticket');
 reset role;
 do $$ begin perform set_config('t.d1', (select id::text from public.tickets where machine_id = '10000000-0000-0000-0000-000000000002'), false); end $$;
 select is((select detergent_unit_price from public.tickets where machine_id = '10000000-0000-0000-0000-000000000002'),
@@ -147,7 +147,7 @@ reset role;
 
 -- signed out ---------------------------------------------------------------------------------
 set local role anon;
-select throws_ilike($$ select public.create_ticket('10000000-0000-0000-0000-000000000001', 'clean') $$,
+select throws_ilike($$ select public.create_ticket('10000000-0000-0000-0000-000000000001', 'clean', 0, 0, null, 'Test Customer', '09170000001') $$,
   '%permission denied%', 'signed-out visitors cannot create tickets');
 reset role;
 

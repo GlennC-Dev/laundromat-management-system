@@ -23,7 +23,7 @@ import {
 } from "@/components/ui/select";
 import { formatPeso, todayISO } from "@/lib/format";
 import { supabase } from "@/lib/supabase";
-import { PAYMENT_LABEL, useMachines, type Ticket } from "@/lib/tickets";
+import { PAYMENT_LABEL, formatPhone, useMachines, type Ticket } from "@/lib/tickets";
 
 const PAGE = 50;
 
@@ -74,6 +74,20 @@ function useHistory(f: Filters, page: number) {
         .range(page * PAGE, page * PAGE + PAGE - 1);
       if (error) throw error;
       return { rows: data, count: count ?? data.length };
+    },
+  });
+}
+
+/** The customers behind a page of tickets. */
+function useCustomers(rows: Ticket[]) {
+  const ids = [...new Set(rows.flatMap((t) => (t.order_id === null ? [] : [t.order_id])))].sort();
+  return useQuery({
+    queryKey: ["history_orders", ids],
+    enabled: ids.length > 0,
+    queryFn: async () => {
+      const { data, error } = await supabase.from("orders").select("*").in("id", ids);
+      if (error) throw error;
+      return data;
     },
   });
 }
@@ -137,6 +151,8 @@ export function TicketHistoryPage() {
     t.machine_id ? (machineOf(t.machine_id)?.label ?? "Machine") : "Counter sale";
 
   const rows = history.data?.rows ?? [];
+  const customers = useCustomers(rows);
+  const orderOf = (t: Ticket) => (customers.data ?? []).find((o) => o.id === t.order_id);
   const count = history.data?.count ?? 0;
   const pages = Math.max(1, Math.ceil(count / PAGE));
 
@@ -225,6 +241,7 @@ export function TicketHistoryPage() {
                   {t.level && <span className="font-normal capitalize"> · {t.level}</span>}
                 </p>
                 <p className="text-sm text-muted-foreground">
+                  {orderOf(t) && `${orderOf(t)!.customer_name} · `}
                   {when(t.started_at)}
                   {t.payment_method && ` · ${PAYMENT_LABEL[t.payment_method]}`}
                 </p>
@@ -271,6 +288,8 @@ export function TicketHistoryPage() {
                   {label(viewing)} · <StatusBadge t={viewing} />
                 </DialogTitle>
                 <DialogDescription>
+                  {orderOf(viewing) &&
+                    `${orderOf(viewing)!.customer_name} · ${formatPhone(orderOf(viewing)!.phone)} · order ${viewing.order_id} · `}
                   Started {when(viewing.started_at)}
                   {viewing.machine_id && ` · ends ${when(viewing.ends_at)}`}
                 </DialogDescription>

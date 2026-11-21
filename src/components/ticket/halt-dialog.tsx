@@ -60,8 +60,8 @@ export function HaltDialog({
     },
     onSuccess: async () => {
       await Promise.all(
-        ["open_tickets", "stock_levels", "todays_tickets", "open_orders"].map((k) =>
-          qc.invalidateQueries({ queryKey: [k] }),
+        ["open_tickets", "stock_levels", "todays_tickets", "todays_orders", "open_orders"].map(
+          (k) => qc.invalidateQueries({ queryKey: [k] }),
         ),
       );
       toast.success(`${machineLabel} halted. It can start again in a minute.`);

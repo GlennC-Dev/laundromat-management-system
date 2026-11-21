@@ -17,7 +17,7 @@ insert into public.restocks (item, doses, unit_cost, created_by) values
 set local role authenticated;
 set local "request.jwt.claims" = '{"sub":"00000000-0000-0000-0000-0000000000f2","role":"authenticated"}';
 
-select lives_ok($$ select public.create_ticket('30000000-0000-0000-0000-000000000001', 'clean', 1, 0) $$, 'staff starts a job');
+select lives_ok($$ select public.create_ticket('30000000-0000-0000-0000-000000000001', 'clean', 1, 0, null, 'Test Customer', '09170000001') $$, 'staff starts a job');
 reset role;
 do $$ begin perform set_config('t.a', (select id::text from public.tickets order by started_at desc limit 1), false); end $$;
 
@@ -40,7 +40,7 @@ select is(public.stock_balance('detergent'), 10, 'a halted job gives its deterge
 -- cooldown: the machine cannot start again straight away
 set local role authenticated;
 set local "request.jwt.claims" = '{"sub":"00000000-0000-0000-0000-0000000000f2","role":"authenticated"}';
-select throws_ok($$ select public.create_ticket('30000000-0000-0000-0000-000000000001', 'clean', 0, 0) $$,
+select throws_ok($$ select public.create_ticket('30000000-0000-0000-0000-000000000001', 'clean', 0, 0, null, 'Test Customer', '09170000001') $$,
   'P0001', null, 'a just-halted machine cannot start a job');
 reset role;
 set local session_replication_role = replica; -- voided tickets are locked
@@ -48,7 +48,7 @@ update public.tickets set voided_at = now() - interval '2 minutes' where id = cu
 set local session_replication_role = origin;
 set local role authenticated;
 set local "request.jwt.claims" = '{"sub":"00000000-0000-0000-0000-0000000000f2","role":"authenticated"}';
-select lives_ok($$ select public.create_ticket('30000000-0000-0000-0000-000000000001', 'clean', 0, 0) $$,
+select lives_ok($$ select public.create_ticket('30000000-0000-0000-0000-000000000001', 'clean', 0, 0, null, 'Test Customer', '09170000001') $$,
   'after the cooldown it can start again');
 reset role;
 do $$ begin perform set_config('t.b', (select id::text from public.tickets where voided_at is null), false); end $$;

@@ -7,6 +7,7 @@ import { supabase } from "@/lib/supabase";
 
 export type Machine = Tables<"machines">;
 export type Ticket = Tables<"tickets">;
+export type Order = Tables<"orders">;
 
 export function useMachines() {
   return useQuery({
@@ -69,6 +70,9 @@ export function useOpenTickets() {
       .on("postgres_changes", { event: "*", schema: "public", table: "tickets" }, () => {
         void qc.invalidateQueries({ queryKey: ["open_tickets"] });
       })
+      .on("postgres_changes", { event: "*", schema: "public", table: "orders" }, () => {
+        void qc.invalidateQueries({ queryKey: ["open_orders"] });
+      })
       .subscribe();
     return () => {
       void supabase.removeChannel(channel);
@@ -89,6 +93,48 @@ export function useOpenTickets() {
       return data;
     },
   });
+}
+
+/** Orders still open (staff can read only these). */
+export function useOpenOrders() {
+  return useQuery({
+    queryKey: ["open_orders"],
+    refetchInterval: 30_000,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("orders")
+        .select("*")
+        .eq("status", "open")
+        .order("opened_at");
+      if (error) throw error;
+      return data;
+    },
+  });
+}
+
+/** Today's orders (opened or closed today, plus any still open), for the Today list. */
+export function useTodaysOrders() {
+  return useQuery({
+    queryKey: ["todays_orders"],
+    refetchInterval: 30_000,
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("todays_orders");
+      if (error) throw error;
+      return data;
+    },
+  });
+}
+
+/** Same rules as the database: Philippine mobile numbers as 09XXXXXXXXX, or null when invalid. */
+export function normalizePhone(p: string): string | null {
+  const c = p.replace(/[^0-9+]/g, "");
+  const d = c.startsWith("+63") ? `0${c.slice(3)}` : /^63\d{10}$/.test(c) ? `0${c.slice(2)}` : c;
+  return /^09\d{9}$/.test(d) ? d : null;
+}
+
+/** Customer label for lists: "Maria Santos · 0917 123 4567". */
+export function formatPhone(p: string): string {
+  return p.length === 11 ? `${p.slice(0, 4)} ${p.slice(4, 7)} ${p.slice(7)}` : p;
 }
 
 /** Re-renders every `ms` so countdowns stay current. */

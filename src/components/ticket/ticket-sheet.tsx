@@ -21,9 +21,13 @@ import {
   runState,
   unitPrice,
   useNow,
+  formatPhone,
+  useOpenOrders,
+  useOpenTickets,
   usePriceList,
   useStockLevels,
   type Machine,
+  type Order,
   type Ticket,
 } from "@/lib/tickets";
 
@@ -35,15 +39,21 @@ function Body({
   isAdmin,
   onClose,
   onHalted,
+  onOpenOrder,
 }: {
   ticket: Ticket;
   machine: Machine;
   isAdmin: boolean;
   onClose: () => void;
   onHalted: (machineId: string) => void;
+  onOpenOrder: (o: Order) => void;
 }) {
   const qc = useQueryClient();
-  const now = useNow();
+  const now = useNow(1000);
+  const orders = useOpenOrders();
+  const openTickets = useOpenTickets();
+  const order = (orders.data ?? []).find((o) => o.id === ticket.order_id);
+  const orderJobs = (openTickets.data ?? []).filter((t) => t.order_id === ticket.order_id);
   const prices = usePriceList();
   const stock = useStockLevels();
   const [paying, setPaying] = useState(false);
@@ -53,6 +63,7 @@ function Body({
   const refresh = () =>
     Promise.all([
       qc.invalidateQueries({ queryKey: ["open_tickets"] }),
+      qc.invalidateQueries({ queryKey: ["open_orders"] }),
       qc.invalidateQueries({ queryKey: ["stock_levels"] }),
     ]);
 
@@ -160,6 +171,12 @@ function Body({
   return (
     <div className="space-y-5 px-4 pb-6">
       <div className="rounded-xl bg-muted p-3 text-sm">
+        {order && (
+          <p className="mb-1 font-semibold">
+            {order.customer_name}
+            <span className="font-normal text-muted-foreground"> · {formatPhone(order.phone)}</span>
+          </p>
+        )}
         <p className="font-medium capitalize">
           {ticket.level} · started {formatTime(ticket.started_at)}
         </p>
@@ -196,6 +213,12 @@ function Body({
             ))}
           </div>
         </section>
+      )}
+
+      {order && orderJobs.length > 1 && !paying && (
+        <Button variant="outline" className="w-full" onClick={() => onOpenOrder(order)}>
+          Pay entire order ({orderJobs.length} jobs)
+        </Button>
       )}
 
       {paying ? (
@@ -266,12 +289,14 @@ export function TicketSheet({
   isAdmin,
   onClose,
   onHalted,
+  onOpenOrder,
 }: {
   ticket: Ticket | null;
   machine: Machine | null;
   isAdmin: boolean;
   onClose: () => void;
   onHalted: (machineId: string) => void;
+  onOpenOrder: (o: Order) => void;
 }) {
   return (
     <Sheet open={ticket !== null && machine !== null} onOpenChange={(o) => !o && onClose()}>
@@ -288,6 +313,7 @@ export function TicketSheet({
             isAdmin={isAdmin}
             onClose={onClose}
             onHalted={onHalted}
+            onOpenOrder={onOpenOrder}
           />
         )}
       </SheetContent>

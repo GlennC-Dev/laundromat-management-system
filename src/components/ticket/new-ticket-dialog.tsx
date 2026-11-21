@@ -2,6 +2,12 @@ import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 
+import {
+  CustomerPicker,
+  NEW_CUSTOMER,
+  customerReady,
+  type CustomerChoice,
+} from "@/components/ticket/customer-picker";
 import { Stepper } from "@/components/ticket/stepper";
 import { Button } from "@/components/ui/button";
 import {
@@ -14,7 +20,15 @@ import {
 import type { Enums } from "@/lib/database.types";
 import { formatPeso, formatTime, todayISO } from "@/lib/format";
 import { supabase } from "@/lib/supabase";
-import { levelsFor, unitPrice, usePriceList, useStockLevels, type Machine } from "@/lib/tickets";
+import {
+  levelsFor,
+  unitPrice,
+  useOpenOrders,
+  useOpenTickets,
+  usePriceList,
+  useStockLevels,
+  type Machine,
+} from "@/lib/tickets";
 import { cn } from "@/lib/utils";
 
 function Body({ machine, onClose }: { machine: Machine; onClose: () => void }) {
@@ -24,6 +38,13 @@ function Body({ machine, onClose }: { machine: Machine; onClose: () => void }) {
   const [level, setLevel] = useState<Enums<"service_level"> | null>(null);
   const [detergent, setDetergent] = useState(0);
   const [fabcon, setFabcon] = useState(0);
+  const orders = useOpenOrders();
+  const open = useOpenTickets();
+  const [customer, setCustomer] = useState<CustomerChoice>(NEW_CUSTOMER);
+  const jobs = new Map<number, number>();
+  for (const t of open.data ?? []) {
+    if (t.order_id !== null) jobs.set(t.order_id, (jobs.get(t.order_id) ?? 0) + 1);
+  }
 
   const rows = prices.data ?? [];
   const today = todayISO();
@@ -62,12 +83,16 @@ function Body({ machine, onClose }: { machine: Machine; onClose: () => void }) {
         p_level: level!,
         p_detergent_qty: detergent,
         p_fabcon_qty: fabcon,
+        ...(customer.orderId !== null
+          ? { p_order_id: customer.orderId }
+          : { p_customer_name: customer.name.trim(), p_phone: customer.phone }),
       });
       if (error) throw error;
     },
     onSuccess: async () => {
       await Promise.all([
         qc.invalidateQueries({ queryKey: ["open_tickets"] }),
+        qc.invalidateQueries({ queryKey: ["open_orders"] }),
         qc.invalidateQueries({ queryKey: ["stock_levels"] }),
       ]);
       const end = new Date(Date.now() + (chosen?.default_minutes ?? 0) * 60_000);
@@ -79,6 +104,13 @@ function Body({ machine, onClose }: { machine: Machine; onClose: () => void }) {
 
   return (
     <div className="space-y-4">
+      <CustomerPicker
+        orders={orders.data ?? []}
+        jobs={jobs}
+        value={customer}
+        onChange={setCustomer}
+      />
+
       <div className="grid grid-cols-3 gap-2" role="radiogroup" aria-label="Cycle level">
         {levelsFor(machine.type).map((l) => {
           const p = service(l);
@@ -132,7 +164,7 @@ function Body({ machine, onClose }: { machine: Machine; onClose: () => void }) {
       </div>
       <Button
         className="h-12 w-full text-base"
-        disabled={!level || start.isPending}
+        disabled={!level || !customerReady(customer) || start.isPending}
         onClick={() => start.mutate()}
       >
         {start.isPending ? "Starting…" : "Start machine"}

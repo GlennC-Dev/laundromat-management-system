@@ -6,7 +6,13 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { formatPeso, formatTime } from "@/lib/format";
 import type { Profile } from "@/lib/profile";
-import { PAYMENT_LABEL, useMachines, useTodaysTickets, type Ticket } from "@/lib/tickets";
+import {
+  PAYMENT_LABEL,
+  useMachines,
+  useTodaysOrders,
+  useTodaysTickets,
+  type Ticket,
+} from "@/lib/tickets";
 
 function StatusBadge({ t }: { t: Ticket }) {
   if (t.voided_at) return <Badge variant="destructive">Voided</Badge>;
@@ -18,6 +24,11 @@ export function TicketsPage() {
   const me = useOutletContext<Profile>();
   const tickets = useTodaysTickets();
   const machines = useMachines();
+  const orders = useTodaysOrders();
+  const customerOf = (t: Ticket) =>
+    t.order_id === null
+      ? undefined
+      : (orders.data ?? []).find((o) => o.id === t.order_id)?.customer_name;
   const [voiding, setVoiding] = useState<Ticket | null>(null);
 
   const label = (id: string | null) =>
@@ -55,6 +66,7 @@ export function TicketsPage() {
                 {t.level && <span className="font-normal capitalize"> · {t.level}</span>}
               </p>
               <p className="text-sm text-muted-foreground">
+                {customerOf(t) && `${customerOf(t)} · `}
                 {formatTime(t.started_at)}
                 {t.payment_method && ` · ${PAYMENT_LABEL[t.payment_method]}`}
                 {t.voided_at && t.void_reason && ` · ${t.void_reason}`}
