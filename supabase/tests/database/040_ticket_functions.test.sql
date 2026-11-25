@@ -85,11 +85,11 @@ select is((select detergent_qty from public.tickets where machine_id = '10000000
 
 set local role authenticated;
 set local "request.jwt.claims" = '{"sub":"00000000-0000-0000-0000-0000000000d2","role":"authenticated"}';
-select lives_ok($$ select public.create_ticket('10000000-0000-0000-0000-000000000002', 'dry', 1, 0, null, 'Test Customer', '09170000001') $$, 'staff can create a dry ticket');
+select lives_ok($$ select public.create_ticket('10000000-0000-0000-0000-000000000002', 'dry', 0, 0, null, 'Test Customer', '09170000001') $$, 'staff can create a dry ticket');
 reset role;
 do $$ begin perform set_config('t.d1', (select id::text from public.tickets where machine_id = '10000000-0000-0000-0000-000000000002'), false); end $$;
-select is((select detergent_unit_price from public.tickets where machine_id = '10000000-0000-0000-0000-000000000002'),
-  99.00::numeric, 'a new ticket picks up the new price');
+select is((select detergent_qty from public.tickets where machine_id = '10000000-0000-0000-0000-000000000002'),
+  0, 'a dryer ticket carries no detergent');
 
 set local role authenticated;
 set local "request.jwt.claims" = '{"sub":"00000000-0000-0000-0000-0000000000d2","role":"authenticated"}';
@@ -131,7 +131,7 @@ set local role authenticated;
 set local "request.jwt.claims" = '{"sub":"00000000-0000-0000-0000-0000000000d2","role":"authenticated"}';
 select throws_ilike($$ select public.void_ticket(current_setting('t.w1')::uuid, 'oops') $$,
   '%only an admin%', 'staff cannot void');
-select is((select doses from public.stock_levels() where item = 'detergent'), 6, 'stock reflects the 4 detergent doses used');
+select is((select doses from public.stock_levels() where item = 'detergent'), 7, 'stock reflects the 3 detergent doses used');
 reset role;
 
 set local role authenticated;
@@ -140,7 +140,7 @@ select throws_ilike($$ select public.void_ticket(current_setting('t.w1')::uuid, 
   '%needs a reason%', 'a void needs a reason');
 select lives_ok($$ select public.void_ticket(current_setting('t.w1')::uuid, 'wrong machine') $$,
   'an admin can void a completed ticket');
-select is((select doses from public.stock_levels() where item = 'detergent'), 9, 'a void returns its doses to stock');
+select is((select doses from public.stock_levels() where item = 'detergent'), 10, 'a void returns its doses to stock');
 select throws_ilike($$ select public.void_ticket(current_setting('t.w1')::uuid, 'again') $$,
   '%already voided%', 'a ticket cannot be voided twice');
 reset role;

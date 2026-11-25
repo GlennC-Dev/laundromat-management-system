@@ -72,6 +72,7 @@ function Body({ machine, onClose }: { machine: Machine; onClose: () => void }) {
   );
 
   const chosen = level ? service(level) : null;
+  const washer = machine.type === "wash";
   const total =
     (chosen?.price ?? 0) + detergent * (detPrice?.price ?? 0) + fabcon * (fabPrice?.price ?? 0);
   const left = (item: "detergent" | "fabcon") => stock.data?.find((s) => s.item === item)?.doses;
@@ -139,24 +140,28 @@ function Body({ machine, onClose }: { machine: Machine; onClose: () => void }) {
         })}
       </div>
 
-      <Stepper
-        label="Detergent"
-        hint={
-          detPrice
-            ? `${formatPeso(detPrice.price)} per dose · customers may bring their own`
-            : "No price set"
-        }
-        value={detergent}
-        max={Math.min(left("detergent") ?? 0, detPrice ? Infinity : 0)}
-        onChange={setDetergent}
-      />
-      <Stepper
-        label="Fabric conditioner"
-        hint={fabPrice ? `${formatPeso(fabPrice.price)} per dose` : "No price set"}
-        value={fabcon}
-        max={Math.min(left("fabcon") ?? 0, fabPrice ? Infinity : 0)}
-        onChange={setFabcon}
-      />
+      {washer && (
+        <>
+        <Stepper
+          label="Detergent"
+          hint={
+            detPrice
+              ? `${formatPeso(detPrice.price)} per dose · customers may bring their own`
+              : "No price set"
+          }
+          value={detergent}
+          max={Math.min(left("detergent") ?? 0, detPrice ? Infinity : 0)}
+          onChange={setDetergent}
+        />
+        <Stepper
+          label="Fabric conditioner"
+          hint={fabPrice ? `${formatPeso(fabPrice.price)} per dose` : "No price set"}
+          value={fabcon}
+          max={Math.min(left("fabcon") ?? 0, fabPrice ? Infinity : 0)}
+          onChange={setFabcon}
+        />
+        </>
+      )}
 
       <div className="flex items-baseline justify-between border-t pt-3">
         <span className="text-sm text-muted-foreground">Total</span>

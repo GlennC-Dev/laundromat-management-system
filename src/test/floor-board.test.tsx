@@ -152,6 +152,37 @@ describe("Floor board", () => {
     });
   });
 
+  it("offers detergent and fabcon on washers only", async () => {
+    dbMock.tables["machines"] = [...(dbMock.tables["machines"] ?? []), machine("m4", "D2", "dry", 12)];
+    renderBoard();
+
+    // Starting a dryer: no item steppers. Starting a washer: both.
+    const dryer = (await screen.findByText("D2")).closest("div.rounded-xl") as HTMLElement;
+    await userEvent.click(within(dryer).getByRole("button", { name: "Start" }));
+    let dialog = await screen.findByRole("dialog");
+    expect(within(dialog).queryByText("Detergent")).not.toBeInTheDocument();
+    expect(within(dialog).queryByText("Fabric conditioner")).not.toBeInTheDocument();
+    await userEvent.keyboard("{Escape}");
+
+    const washer = (await screen.findByText("W1")).closest("div.rounded-xl") as HTMLElement;
+    await userEvent.click(within(washer).getByRole("button", { name: "Start" }));
+    dialog = await screen.findByRole("dialog");
+    expect(within(dialog).getByText("Detergent")).toBeInTheDocument();
+    expect(within(dialog).getByText("Fabric conditioner")).toBeInTheDocument();
+    await userEvent.keyboard("{Escape}");
+
+    // A running dryer's ticket: no +detergent / +fabcon; a washer's ticket still has them.
+    await userEvent.click(await screen.findByRole("button", { name: "Open ticket on D1" }));
+    expect(await screen.findByRole("button", { name: /Take payment/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /\+5 min/ })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /\+1 detergent/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /\+1 fabcon/ })).not.toBeInTheDocument();
+    await userEvent.keyboard("{Escape}");
+
+    await userEvent.click(await screen.findByRole("button", { name: "Open ticket on W2" }));
+    expect(await screen.findByRole("button", { name: /\+1 detergent/ })).toBeInTheDocument();
+  });
+
   it("opens the ticket for a running machine", async () => {
     renderBoard();
     await userEvent.click(await screen.findByRole("button", { name: "Open ticket on W2" }));

@@ -159,13 +159,22 @@ function Body({
           },
         ]
       : [{ label: "+1 extra spin", price: spinPrice, args: { spins: 1 } }]),
-    {
-      label: "+1 detergent",
-      price: detPrice,
-      args: { detergent: 1 },
-      blocked: left("detergent") < 1,
-    },
-    { label: "+1 fabcon", price: fabPrice, args: { fabcon: 1 }, blocked: left("fabcon") < 1 },
+    ...(machine.type === "wash"
+      ? [
+          {
+            label: "+1 detergent",
+            price: detPrice,
+            args: { detergent: 1 },
+            blocked: left("detergent") < 1,
+          },
+          {
+            label: "+1 fabcon",
+            price: fabPrice,
+            args: { fabcon: 1 },
+            blocked: left("fabcon") < 1,
+          },
+        ]
+      : []),
   ];
 
   return (
