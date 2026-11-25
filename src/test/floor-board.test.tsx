@@ -153,7 +153,10 @@ describe("Floor board", () => {
   });
 
   it("offers detergent and fabcon on washers only", async () => {
-    dbMock.tables["machines"] = [...(dbMock.tables["machines"] ?? []), machine("m4", "D2", "dry", 12)];
+    dbMock.tables["machines"] = [
+      ...(dbMock.tables["machines"] ?? []),
+      machine("m4", "D2", "dry", 12),
+    ];
     renderBoard();
 
     // Starting a dryer: no item steppers. Starting a washer: both.
