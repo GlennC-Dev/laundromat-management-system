@@ -7,6 +7,7 @@ import { OrdersStrip } from "@/components/orders-strip";
 import { StockAlert } from "@/components/stock-alert";
 import { CounterSaleDialog } from "@/components/ticket/counter-sale-dialog";
 import { DryerPicker } from "@/components/ticket/dryer-picker";
+import { OutageDialog, reasonLabel } from "@/components/ticket/outage-dialog";
 import { OrderDialog } from "@/components/ticket/order-dialog";
 import { NewTicketDialog } from "@/components/ticket/new-ticket-dialog";
 import { TicketSheet } from "@/components/ticket/ticket-sheet";
@@ -21,8 +22,10 @@ import {
   useMachines,
   useNow,
   useOpenOrders,
+  useOpenOutages,
   useOpenTickets,
   type Machine,
+  type Outage,
   type Order,
   type Ticket,
 } from "@/lib/tickets";
@@ -34,11 +37,15 @@ function Tile({
   now,
   onStart,
   onOpen,
+  onOutage,
+  outage,
   coolingUntil,
   customer,
 }: {
   machine: Machine;
   customer?: string | undefined;
+  outage?: Outage | undefined; // why it is out of service
+  onOutage: () => void;
   tickets: Ticket[]; // open tickets on this machine, newest first
   now: number;
   coolingUntil?: number | undefined;
@@ -89,6 +96,13 @@ function Tile({
         )}
       </div>
 
+      {out && (
+        <p className="text-sm">
+          {outage ? reasonLabel(outage.reason) : "Out of service"}
+          {outage?.note && <span className="block text-muted-foreground">{outage.note}</span>}
+        </p>
+      )}
+
       {current && state && (
         <button
           type="button"
@@ -138,6 +152,27 @@ function Tile({
           {current ? "Start another" : "Start"}
         </Button>
       )}
+      {!out && !current && (
+        <Button
+          variant="ghost"
+          size="sm"
+          className="text-muted-foreground"
+          aria-label={`Take ${machine.label} out of service`}
+          onClick={onOutage}
+        >
+          Take out of service
+        </Button>
+      )}
+      {out && (
+        <Button
+          className="mt-auto h-11"
+          variant="outline"
+          aria-label={`Bring ${machine.label} back`}
+          onClick={onOutage}
+        >
+          Bring back
+        </Button>
+      )}
     </div>
   );
 }
@@ -155,7 +190,11 @@ function Group({
   onOpen,
   cooling,
   customers,
+  outages,
+  onOutage,
 }: {
+  outages: Map<string, Outage>;
+  onOutage: (m: Machine) => void;
   customers: Map<number, string>;
   title: string;
   machines: Machine[];
@@ -178,6 +217,8 @@ function Group({
             now={now}
             coolingUntil={cooling[m.id]}
             customer={customerOf(ticketsBy.get(m.id)?.[0], customers)}
+            outage={outages.get(m.id)}
+            onOutage={() => onOutage(m)}
             onStart={() => onStart(m)}
             onOpen={onOpen}
           />
@@ -193,7 +234,9 @@ export function HomePage() {
   const machines = useMachines();
   const open = useOpenTickets();
   const orders = useOpenOrders();
+  const outageRows = useOpenOutages();
   const now = useNow();
+  const [outageFor, setOutageFor] = useState<Machine | null>(null);
   const [starting, setStarting] = useState<Machine | null>(null);
   const [viewing, setViewing] = useState<Ticket | null>(null);
   const [counter, setCounter] = useState(false);
@@ -217,6 +260,7 @@ export function HomePage() {
       !ticketsBy.has(m.id) &&
       !((cooling[m.id] ?? 0) > now),
   );
+  const outages = new Map((outageRows.data ?? []).map((o) => [o.machine_id, o]));
   const customers = new Map((orders.data ?? []).map((o) => [o.id, o.customer_name]));
   const viewingMachine = viewing
     ? ((machines.data ?? []).find((m) => m.id === viewing.machine_id) ?? null)
@@ -267,6 +311,8 @@ export function HomePage() {
         now={now}
         cooling={cooling}
         customers={customers}
+        outages={outages}
+        onOutage={setOutageFor}
         onStart={setStarting}
         onOpen={setViewing}
       />
@@ -277,6 +323,8 @@ export function HomePage() {
         now={now}
         cooling={cooling}
         customers={customers}
+        outages={outages}
+        onOutage={setOutageFor}
         onStart={setStarting}
         onOpen={setViewing}
       />
@@ -319,6 +367,11 @@ export function HomePage() {
         jobs={(open.data ?? []).filter((t) => paying !== null && t.order_id === paying.id)}
         machines={machines.data ?? []}
         onClose={() => setPaying(null)}
+      />
+      <OutageDialog
+        machine={outageFor}
+        isAdmin={me.role === "admin"}
+        onClose={() => setOutageFor(null)}
       />
       <CounterSaleDialog open={counter} onClose={() => setCounter(false)} />
     </div>

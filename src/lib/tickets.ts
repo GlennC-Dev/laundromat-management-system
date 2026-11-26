@@ -12,8 +12,27 @@ export type Order = Tables<"orders">;
 export function useMachines() {
   return useQuery({
     queryKey: ["machines"],
+    refetchInterval: 30_000,
     queryFn: async () => {
       const { data, error } = await supabase.from("machines").select("*").order("label");
+      if (error) throw error;
+      return data;
+    },
+  });
+}
+
+export type Outage = Tables<"machine_outages">;
+
+/** Machines currently out of service, with the reason (staff can read these). */
+export function useOpenOutages() {
+  return useQuery({
+    queryKey: ["open_outages"],
+    refetchInterval: 30_000,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("machine_outages")
+        .select("*")
+        .is("ended_at", null);
       if (error) throw error;
       return data;
     },

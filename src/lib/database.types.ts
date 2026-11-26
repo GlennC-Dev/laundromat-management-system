@@ -79,6 +79,42 @@ export type Database = {
         };
         Relationships: [];
       };
+      machine_outages: {
+        Row: {
+          ended_at: string | null;
+          ended_by: string | null;
+          end_note: string | null;
+          id: string;
+          machine_id: string;
+          note: string | null;
+          reason: E["outage_reason"];
+          started_at: string;
+          started_by: string | null;
+        };
+        Insert: {
+          ended_at?: string | null;
+          ended_by?: string | null;
+          end_note?: string | null;
+          id?: string;
+          machine_id: string;
+          note?: string | null;
+          reason: E["outage_reason"];
+          started_at?: string;
+          started_by?: string | null;
+        };
+        Update: {
+          ended_at?: string | null;
+          ended_by?: string | null;
+          end_note?: string | null;
+          id?: string;
+          machine_id?: string;
+          note?: string | null;
+          reason?: E["outage_reason"];
+          started_at?: string;
+          started_by?: string | null;
+        };
+        Relationships: [];
+      };
       orders: {
         Row: {
           closed_at: string | null;
@@ -347,6 +383,11 @@ export type Database = {
         Args: { p_ticket_id: string; p_reason: E["halt_reason"]; p_note?: string };
         Returns: undefined;
       };
+      take_machine_down: {
+        Args: { p_machine_id: string; p_reason: E["outage_reason"]; p_note?: string };
+        Returns: undefined;
+      };
+      bring_machine_up: { Args: { p_machine_id: string; p_note?: string }; Returns: undefined };
       void_ticket: { Args: { p_ticket_id: string; p_reason: string }; Returns: undefined };
       restock: {
         Args: { p_doses: number; p_item: E["stock_item"]; p_unit_cost: number };
@@ -364,6 +405,7 @@ export type Database = {
       machine_status: "available" | "out_of_service";
       machine_type: "wash" | "dry";
       order_status: "open" | "closed";
+      outage_reason: "broken" | "maintenance" | "out_of_service" | "waiting_for_parts" | "other";
       payment_method: "cash" | "gcash" | "maya" | "bank_transfer" | "card";
       price_code: "extra_spin" | "dry_extension" | "detergent" | "fabcon";
       price_kind: "service" | "add_on" | "item";

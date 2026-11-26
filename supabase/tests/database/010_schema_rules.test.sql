@@ -18,8 +18,8 @@ insert into public.audit_log (table_name, row_id, action) values ('tickets', 'x'
 
 -- structure -------------------------------------------------------------------
 select is((select count(*)::int from pg_class c join pg_namespace n on n.oid = c.relnamespace
-           where n.nspname = 'public' and c.relkind = 'r' and c.relrowsecurity), 9,
-          'all nine tables have row-level security on');
+           where n.nspname = 'public' and c.relkind = 'r' and c.relrowsecurity), 10,
+          'all ten tables have row-level security on');
 select throws_ilike($$ insert into public.settings (id) values (false) $$, '%violates check constraint%',
           'settings holds a single row');
 select throws_ilike($$ insert into public.machines (label, type, capacity_kg, motor_kw) values ('D9','dry',12,0.37) $$,
