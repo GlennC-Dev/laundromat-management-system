@@ -28,10 +28,19 @@ import {
   usePriceList,
   useStockLevels,
   type Machine,
+  type Order,
 } from "@/lib/tickets";
 import { cn } from "@/lib/utils";
 
-function Body({ machine, onClose }: { machine: Machine; onClose: () => void }) {
+function Body({
+  machine,
+  order,
+  onClose,
+}: {
+  machine: Machine;
+  order: Order | null;
+  onClose: () => void;
+}) {
   const qc = useQueryClient();
   const prices = usePriceList();
   const stock = useStockLevels();
@@ -40,7 +49,9 @@ function Body({ machine, onClose }: { machine: Machine; onClose: () => void }) {
   const [fabcon, setFabcon] = useState(0);
   const orders = useOpenOrders();
   const open = useOpenTickets();
-  const [customer, setCustomer] = useState<CustomerChoice>(NEW_CUSTOMER);
+  const [customer, setCustomer] = useState<CustomerChoice>(
+    order ? { orderId: order.id, name: "", phone: "" } : NEW_CUSTOMER,
+  );
   const jobs = new Map<number, number>();
   for (const t of open.data ?? []) {
     if (t.order_id !== null) jobs.set(t.order_id, (jobs.get(t.order_id) ?? 0) + 1);
@@ -180,9 +191,11 @@ function Body({ machine, onClose }: { machine: Machine; onClose: () => void }) {
 
 export function NewTicketDialog({
   machine,
+  order = null,
   onClose,
 }: {
   machine: Machine | null;
+  order?: Order | null; // preselects this customer (e.g. dryer for a finished wash)
   onClose: () => void;
 }) {
   return (
@@ -194,7 +207,7 @@ export function NewTicketDialog({
             {machine && `${machine.capacity_kg} kg ${machine.type === "wash" ? "washer" : "dryer"}`}
           </DialogDescription>
         </DialogHeader>
-        {machine && <Body key={machine.id} machine={machine} onClose={onClose} />}
+        {machine && <Body key={machine.id} machine={machine} order={order} onClose={onClose} />}
       </DialogContent>
     </Dialog>
   );

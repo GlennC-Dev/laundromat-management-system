@@ -6,6 +6,7 @@ import { HALT_COOLDOWN_MS } from "@/components/ticket/halt-dialog";
 import { OrdersStrip } from "@/components/orders-strip";
 import { StockAlert } from "@/components/stock-alert";
 import { CounterSaleDialog } from "@/components/ticket/counter-sale-dialog";
+import { DryerPicker } from "@/components/ticket/dryer-picker";
 import { OrderDialog } from "@/components/ticket/order-dialog";
 import { NewTicketDialog } from "@/components/ticket/new-ticket-dialog";
 import { TicketSheet } from "@/components/ticket/ticket-sheet";
@@ -197,6 +198,9 @@ export function HomePage() {
   const [viewing, setViewing] = useState<Ticket | null>(null);
   const [counter, setCounter] = useState(false);
   const [paying, setPaying] = useState<Order | null>(null);
+  // A finished wash can hand its customer straight to a free dryer.
+  const [dryFor, setDryFor] = useState<Order | null>(null);
+  const [startingFor, setStartingFor] = useState<Order | null>(null);
   // Machines that were just halted can't start a job for a minute (the database enforces it too).
   const [cooling, setCooling] = useState<Record<string, number>>({});
 
@@ -206,6 +210,13 @@ export function HomePage() {
     if (!t.machine_id) continue;
     ticketsBy.set(t.machine_id, [...(ticketsBy.get(t.machine_id) ?? []), t]);
   }
+  const freeDryers = active.filter(
+    (m) =>
+      m.type === "dry" &&
+      m.status === "available" &&
+      !ticketsBy.has(m.id) &&
+      !((cooling[m.id] ?? 0) > now),
+  );
   const customers = new Map((orders.data ?? []).map((o) => [o.id, o.customer_name]));
   const viewingMachine = viewing
     ? ((machines.data ?? []).find((m) => m.id === viewing.machine_id) ?? null)
@@ -270,7 +281,24 @@ export function HomePage() {
         onOpen={setViewing}
       />
 
-      <NewTicketDialog machine={starting} onClose={() => setStarting(null)} />
+      <NewTicketDialog
+        machine={starting}
+        order={startingFor}
+        onClose={() => {
+          setStarting(null);
+          setStartingFor(null);
+        }}
+      />
+      <DryerPicker
+        order={dryFor}
+        dryers={freeDryers}
+        onClose={() => setDryFor(null)}
+        onPick={(m) => {
+          setStartingFor(dryFor);
+          setDryFor(null);
+          setStarting(m);
+        }}
+      />
       <TicketSheet
         ticket={viewing}
         machine={viewingMachine}
@@ -279,6 +307,10 @@ export function HomePage() {
         onOpenOrder={(o) => {
           setViewing(null);
           setPaying(o);
+        }}
+        onStartDryer={(o) => {
+          setViewing(null);
+          setDryFor(o);
         }}
         onHalted={(id) => setCooling((c) => ({ ...c, [id]: Date.now() + HALT_COOLDOWN_MS }))}
       />

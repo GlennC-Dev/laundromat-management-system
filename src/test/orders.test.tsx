@@ -90,6 +90,18 @@ function setup(jobs: ReturnType<typeof job>[]) {
       effective_from: "2025-01-01",
       created_at: "",
     },
+    {
+      id: "p2",
+      kind: "service",
+      code: null,
+      machine_type: "dry",
+      size_kg: 12,
+      level: "dry",
+      price: 50,
+      default_minutes: 30,
+      effective_from: "2025-01-01",
+      created_at: "",
+    },
   ];
   const router = createMemoryRouter(routes, { initialEntries: ["/"] });
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
@@ -132,6 +144,39 @@ describe("Orders", () => {
       p_fabcon_qty: 0,
       p_order_id: 45_000_000_001,
     });
+  });
+
+  it("starts a dryer for a finished wash's customer without retyping them", async () => {
+    const user = userEvent.setup();
+    setup([job("t1", "m2", "clean", -3, 80)]);
+    await user.click(await screen.findByRole("button", { name: "Open ticket on W2" }));
+    await user.click(await screen.findByRole("button", { name: "Start a dryer for Maria Santos" }));
+
+    const picker = await screen.findByRole("dialog");
+    expect(within(picker).queryByText("W1")).not.toBeInTheDocument(); // dryers only
+    await user.click(within(picker).getByRole("button", { name: /D1/ }));
+
+    const dialog = await screen.findByRole("dialog");
+    expect(within(dialog).getByRole("radio", { name: /Maria Santos/ })).toBeChecked();
+    expect(within(dialog).queryByLabelText("Name")).not.toBeInTheDocument();
+    await user.click(within(dialog).getByRole("radio", { name: /dry.*₱50/i }));
+    await user.click(within(dialog).getByRole("button", { name: "Start machine" }));
+
+    expect(supabaseMock.rpc).toHaveBeenCalledWith("create_ticket", {
+      p_machine_id: "m3",
+      p_level: "dry",
+      p_detergent_qty: 0,
+      p_fabcon_qty: 0,
+      p_order_id: 45_000_000_001,
+    });
+  });
+
+  it("offers no dryer shortcut on a dryer's own ticket", async () => {
+    const user = userEvent.setup();
+    setup([job("t2", "m3", "dry", 20, 60)]);
+    await user.click(await screen.findByRole("button", { name: "Open ticket on D1" }));
+    expect(await screen.findByRole("button", { name: /Take payment/ })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Start a dryer/ })).not.toBeInTheDocument();
   });
 
   it("will not take one payment for the order while a machine is still running", async () => {

@@ -40,6 +40,7 @@ function Body({
   onClose,
   onHalted,
   onOpenOrder,
+  onStartDryer,
 }: {
   ticket: Ticket;
   machine: Machine;
@@ -47,6 +48,7 @@ function Body({
   onClose: () => void;
   onHalted: (machineId: string) => void;
   onOpenOrder: (o: Order) => void;
+  onStartDryer: (o: Order) => void;
 }) {
   const qc = useQueryClient();
   const now = useNow(1000);
@@ -224,6 +226,16 @@ function Body({
         </section>
       )}
 
+      {order && machine.type === "wash" && !paying && (
+        <Button
+          variant={state.kind === "running" ? "outline" : "default"}
+          className="w-full"
+          onClick={() => onStartDryer(order)}
+        >
+          Start a dryer for {order.customer_name}
+        </Button>
+      )}
+
       {order && orderJobs.length > 1 && !paying && (
         <Button variant="outline" className="w-full" onClick={() => onOpenOrder(order)}>
           Pay entire order ({orderJobs.length} jobs)
@@ -299,6 +311,7 @@ export function TicketSheet({
   onClose,
   onHalted,
   onOpenOrder,
+  onStartDryer,
 }: {
   ticket: Ticket | null;
   machine: Machine | null;
@@ -306,6 +319,7 @@ export function TicketSheet({
   onClose: () => void;
   onHalted: (machineId: string) => void;
   onOpenOrder: (o: Order) => void;
+  onStartDryer: (o: Order) => void;
 }) {
   return (
     <Sheet open={ticket !== null && machine !== null} onOpenChange={(o) => !o && onClose()}>
@@ -323,6 +337,7 @@ export function TicketSheet({
             onClose={onClose}
             onHalted={onHalted}
             onOpenOrder={onOpenOrder}
+            onStartDryer={onStartDryer}
           />
         )}
       </SheetContent>
